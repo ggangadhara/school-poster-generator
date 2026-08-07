@@ -95,9 +95,9 @@ def create_poster(image_file, school, date_text, subject_text):
             font_footer_value
         ) = ImageFont.load_default()
 
-    # 5. Download and Place Karnataka Government Emblem
+    # 5. Download and Place Karnataka Government Emblem (Using 500px authorized size)
     emblem_path = "karnataka_emblem.png"
-    emblem_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Seal_of_Karnataka.svg/300px-Seal_of_Karnataka.svg.png"
+    emblem_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Seal_of_Karnataka.svg/500px-Seal_of_Karnataka.svg.png"
     download_file(emblem_url, emblem_path)
 
     if os.path.exists(emblem_path):
