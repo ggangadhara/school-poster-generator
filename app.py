@@ -70,7 +70,7 @@ def create_poster(image_file, school, date_text, subject_text):
     )  # Vibrant Gold stripe
 
     # 3. Draw Modern Dark Navy Footer Banner with a Gold Top Border
-    footer_height = 320
+    footer_height = 340
     footer_y0 = height - footer_height
     draw.rectangle([(0, footer_y0 - 6), (width, footer_y0)], fill="#FFC107")
     draw.rectangle([(0, footer_y0), (width, height)], fill="#0F172A")
@@ -87,13 +87,14 @@ def create_poster(image_file, school, date_text, subject_text):
         font_badge = ImageFont.truetype(font_path, 52)
         font_footer_label = ImageFont.truetype(font_path, 42)
         font_footer_value = ImageFont.truetype(font_path, 46)
+        font_credit = ImageFont.truetype(font_path, 25)  # Subtle credit font
     except IOError:
         st.warning(
             "⚠️ Kannada font could not be loaded. Text may not render correctly."
         )
         font_title = font_sub = font_school = font_badge = font_footer_label = (
             font_footer_value
-        ) = ImageFont.load_default()
+        ) = font_credit = ImageFont.load_default()
 
     # 5. Download and Place Karnataka Government Emblem (Using 500px authorized size)
     emblem_path = "karnataka_emblem.png"
@@ -168,14 +169,14 @@ def create_poster(image_file, school, date_text, subject_text):
     # 9. Process, Auto-Fit, and Frame Photo with a Realistic Multi-Layer Shadow
     if image_file:
         img = Image.open(image_file).convert("RGB")
-        max_w, max_h = 920, 960
+        max_w, max_h = 920, 940
 
         ratio = min(max_w / img.width, max_h / img.height)
         new_size = (int(img.width * ratio), int(img.height * ratio))
         img = img.resize(new_size, Image.Resampling.LANCZOS)
 
         paste_x = (width - img.width) // 2
-        paste_y = 545 + (max_h - img.height) // 2
+        paste_y = 540 + (max_h - img.height) // 2
         border = 18
 
         # Outer Shadow (Simulated Drop-Shadow for 3D Depth)
@@ -210,22 +211,32 @@ def create_poster(image_file, school, date_text, subject_text):
         # Paste Uploaded Photo
         poster.paste(img, (paste_x, paste_y))
 
-    # 10. Draw Formal Footer Content (Gold & Crisp White Typography on Navy)
+    # 10. Draw Formal Footer Content (Date & Subject)
     footer_text_1 = f"ದಿನಾಂಕ : {date_text}"
     footer_text_2 = f"ವಿಷಯ : {subject_text}"
 
     draw.text(
-        (width // 2, height - 230),
+        (width // 2, height - 250),
         footer_text_1,
         font=font_footer_label,
         fill="#F8FAFC",
         anchor="mm",
     )
     draw.text(
-        (width // 2, height - 120),
+        (width // 2, height - 150),
         footer_text_2,
         font=font_footer_value,
         fill="#FFD700",
+        anchor="mm",
+    )
+
+    # 11. Draw Developer Credit Line at the Bottom (Subtle Slate Gray)
+    credit_text = "Design and developed by: Gangadhar, Statistical Inspector, Taluk Office, Malavalli, Mandya"
+    draw.text(
+        (width // 2, height - 45),
+        credit_text,
+        font=font_credit,
+        fill="#94A3B8",  # Executive Slate-400 for a sophisticated watermark appearance
         anchor="mm",
     )
 
