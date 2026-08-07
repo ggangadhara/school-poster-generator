@@ -14,6 +14,25 @@ st.write(
     "Upload an event photo and update the details to generate an HD poster."
 )
 
+
+# --- HELPER FUNCTION: DOWNLOAD FILES SAFELY WITH USER-AGENT ---
+def download_file(url, filepath):
+    if not os.path.exists(filepath):
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+                },
+            )
+            with urllib.request.urlopen(req) as response, open(
+                filepath, "wb"
+            ) as out_file:
+                out_file.write(response.read())
+        except Exception as e:
+            st.warning(f"⚠️ Could not download {filepath}: {e}")
+
+
 # --- SIDEBAR / INPUT CONTROLS ---
 st.sidebar.header("Poster Settings")
 
@@ -51,17 +70,11 @@ def create_poster(image_file, school, date_text, subject_text):
         [(0, height - banner_height), (width, height)], fill="#F5B041"
     )
 
-    # 3. Load Kannada Font (Auto-download from openmaptiles mirror if missing)
+    # 3. Download and Load Kannada Font
     font_path = "NotoSansKannada-Bold.ttf"
     font_url = "https://raw.githubusercontent.com/openmaptiles/fonts/master/noto-sans/NotoSansKannada-Bold.ttf"
+    download_file(font_url, font_path)
 
-    if not os.path.exists(font_path):
-        try:
-            urllib.request.urlretrieve(font_url, font_path)
-        except Exception as e:
-            st.warning(f"⚠️ Could not download font automatically: {e}")
-
-    # Load fonts
     try:
         font_title = ImageFont.truetype(font_path, 44)
         font_school = ImageFont.truetype(font_path, 40)
@@ -75,36 +88,31 @@ def create_poster(image_file, school, date_text, subject_text):
             ImageFont.load_default()
         )
 
-    # 4. Add Karnataka Government Emblem at the Top Center
+    # 4. Download and Draw Karnataka Government Emblem
     emblem_path = "karnataka_emblem.png"
-    emblem_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Seal_of_Karnataka.svg/300px-Seal_of_Karnataka.svg.png"
-
-    if not os.path.exists(emblem_path):
-        try:
-            urllib.request.urlretrieve(emblem_url, emblem_path)
-        except Exception:
-            pass  # Fail silently if offline; text will still render
+    emblem_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Seal_of_Karnataka.svg/300px-Seal_of_Karnataka.svg.png"
+    download_file(emblem_url, emblem_path)
 
     if os.path.exists(emblem_path):
         try:
             emblem = Image.open(emblem_path).convert("RGBA")
-            emblem = emblem.resize((120, 120), Image.Resampling.LANCZOS)
+            emblem = emblem.resize((130, 130), Image.Resampling.LANCZOS)
             emblem_x = (width - emblem.width) // 2
-            emblem_y = 25
+            emblem_y = 30
             poster.paste(emblem, (emblem_x, emblem_y), emblem)
-        except Exception:
-            pass
+        except Exception as e:
+            st.warning(f"⚠️ Could not render emblem image: {e}")
 
     # 5. Draw Header Text (Karnataka Govt & Department)
     draw.text(
-        (width // 2, 180),
+        (width // 2, 185),
         "ಕರ್ನಾಟಕ ಸರ್ಕಾರ",
         font=font_title,
         fill="#900C3F",
         anchor="mm",
     )
     draw.text(
-        (width // 2, 240),
+        (width // 2, 245),
         "ಶಾಲಾ ಶಿಕ್ಷಣ ಮತ್ತು ಸಾಕ್ಷರತಾ ಇಲಾಖೆ",
         font=font_title,
         fill="#1A5276",
@@ -117,16 +125,16 @@ def create_poster(image_file, school, date_text, subject_text):
     if len(lines) >= 1:
         # Line 1: ಸರ್ಕಾರಿ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ ಹೊಮ್ಮರಗಳ್ಳಿ
         draw.text(
-            (width // 2, 310),
+            (width // 2, 315),
             lines[0],
             font=font_school,
             fill="#900C3F",
             anchor="mm",
         )
     if len(lines) >= 2:
-        # Line 2: ಹೆಚ್ ಡಿ ಕೋಟೆ ತಾಲ್ಲೂಕು ಮೈಸೂರು ಜಿಲ್ಲೆ (with 65px line spacing)
+        # Line 2: ಹೆಚ್ ಡಿ ಕೋಟೆ ತಾಲ್ಲೂಕು ಮೈಸೂರು ಜಿಲ್ಲೆ
         draw.text(
-            (width // 2, 375),
+            (width // 2, 380),
             lines[1],
             font=font_school,
             fill="#900C3F",
@@ -136,7 +144,7 @@ def create_poster(image_file, school, date_text, subject_text):
     # 7. Draw "ಸಚೇತನ" Pink Badge
     badge_w, badge_h = 340, 90
     badge_x0 = (width - badge_w) // 2
-    badge_y0 = 435
+    badge_y0 = 440
     draw.rounded_rectangle(
         [
             (badge_x0, badge_y0),
@@ -158,7 +166,7 @@ def create_poster(image_file, school, date_text, subject_text):
         img = Image.open(image_file).convert("RGB")
 
         # Define maximum available photo canvas area
-        max_w, max_h = 940, 940
+        max_w, max_h = 940, 930
 
         # Calculate scale ratio to auto-fit without distorting aspect ratio
         ratio = min(max_w / img.width, max_h / img.height)
@@ -167,7 +175,7 @@ def create_poster(image_file, school, date_text, subject_text):
 
         # Center the image horizontally and vertically in the middle canvas area
         paste_x = (width - img.width) // 2
-        paste_y = 550 + (max_h - img.height) // 2
+        paste_y = 555 + (max_h - img.height) // 2
 
         # Draw a clean white border frame
         border = 15
