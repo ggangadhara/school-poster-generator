@@ -32,6 +32,26 @@ uploaded_file = st.sidebar.file_uploader(
 )
 
 
+# --- HELPER FUNCTION: AUTO-WRAP TEXT BY PIXEL WIDTH ---
+def wrap_text(text, font, max_width, draw):
+    lines = []
+    for paragraph in text.split("\n"):
+        words = paragraph.split()
+        if not words:
+            continue
+        current_line = words[0]
+        for word in words[1:]:
+            test_line = current_line + " " + word
+            bbox = draw.textbbox((0, 0), test_line, font=font)
+            if (bbox[2] - bbox[0]) <= max_width:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+        lines.append(current_line)
+    return "\n".join(lines)
+
+
 # --- HELPER FUNCTION TO DRAW HD POSTER ---
 def create_poster(image_file, school, date_text, subject_text):
     # 1. Create 1080x1920 Full HD Canvas (Vertical Poster Ratio)
@@ -49,19 +69,18 @@ def create_poster(image_file, school, date_text, subject_text):
     font_path = "NotoSansKannada-Bold.ttf"
     font_url = "https://raw.githubusercontent.com/openmaptiles/fonts/master/noto-sans/NotoSansKannada-Bold.ttf"
 
-    # Automatically fetch the font file if not found locally
     if not os.path.exists(font_path):
         try:
             urllib.request.urlretrieve(font_url, font_path)
         except Exception as e:
             st.warning(f"⚠️ Could not download font automatically: {e}")
 
-    # Load fonts (Pillow automatically uses RaQm for Kannada if libraqm0 is installed via packages.txt)
+    # Load fonts
     try:
         font_title = ImageFont.truetype(font_path, 45)
-        font_school = ImageFont.truetype(font_path, 42)
-        font_badge = ImageFont.truetype(font_path, 60)
-        font_footer = ImageFont.truetype(font_path, 50)
+        font_school = ImageFont.truetype(font_path, 38)  # Optimized size for 2-3 lines
+        font_badge = ImageFont.truetype(font_path, 58)
+        font_footer = ImageFont.truetype(font_path, 48)
     except IOError:
         st.warning(
             "⚠️ Kannada font could not be loaded. Text may not render correctly."
@@ -86,18 +105,19 @@ def create_poster(image_file, school, date_text, subject_text):
         anchor="mm",
     )
 
-    # Multiline School Name
+    # 5. Automatically wrap and draw Multiline School Name (Max width: 940px)
+    wrapped_school = wrap_text(school, font_school, 940, draw)
     draw.multiline_text(
-        (width // 2, 230),
-        school,
+        (width // 2, 235),
+        wrapped_school,
         font=font_school,
         fill="#900C3F",
         anchor="mm",
         align="center",
-        spacing=15,
+        spacing=12,
     )
 
-    # 5. Draw "ಸಚೇತನ" Pink Badge
+    # 6. Draw "ಸಚೇತನ" Pink Badge
     badge_w, badge_h = 360, 100
     badge_x0 = (width - badge_w) // 2
     badge_y0 = 340
@@ -117,14 +137,12 @@ def create_poster(image_file, school, date_text, subject_text):
         anchor="mm",
     )
 
-    # 6. Process and Center Uploaded Image
+    # 7. Process and Center Uploaded Image
     if image_file:
         img = Image.open(image_file).convert("RGB")
-        # High-quality Lanczos resizing to fit canvas nicely
         target_w, target_h = 900, 950
         img.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
 
-        # Draw a white border frame
         paste_x = (width - img.width) // 2
         paste_y = 480
         border = 15
@@ -135,11 +153,9 @@ def create_poster(image_file, school, date_text, subject_text):
             ],
             fill="white",
         )
-
-        # Paste uploaded photo
         poster.paste(img, (paste_x, paste_y))
 
-    # 7. Draw Footer Text (Date & Subject)
+    # 8. Draw Footer Text (Date & Subject)
     footer_text_1 = f"ದಿನಾಂಕ: {date_text}"
     footer_text_2 = f"ವಿಷಯ - {subject_text}"
 
@@ -168,19 +184,16 @@ if uploaded_file is not None:
             uploaded_file, school_name, date_input, subject_input
         )
 
-        # Display preview (scaled down for web viewing)
         st.image(
             hd_poster,
             caption="HD Poster Preview (1080x1920)",
             use_container_width=True,
         )
 
-        # Convert to bytes for download
         buf = io.BytesIO()
         hd_poster.save(buf, format="PNG", quality=100)
         byte_im = buf.getvalue()
 
-        # Download button
         st.download_button(
             label="📥 Download HD Poster (PNG)",
             data=byte_im,
