@@ -1,0 +1,3 @@
+libraqm0
+libharfbuzz0b
+libfribidi0
