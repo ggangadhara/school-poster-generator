@@ -87,14 +87,13 @@ def create_poster(image_file, school, date_text, subject_text):
         font_badge = ImageFont.truetype(font_path, 52)
         font_footer_label = ImageFont.truetype(font_path, 42)
         font_footer_value = ImageFont.truetype(font_path, 46)
-        font_credit = ImageFont.truetype(font_path, 25)  # Subtle credit font
     except IOError:
         st.warning(
             "⚠️ Kannada font could not be loaded. Text may not render correctly."
         )
         font_title = font_sub = font_school = font_badge = font_footer_label = (
             font_footer_value
-        ) = font_credit = ImageFont.load_default()
+        ) = ImageFont.load_default()
 
     # 5. Download and Place Karnataka Government Emblem (Using 500px authorized size)
     emblem_path = "karnataka_emblem.png"
@@ -216,27 +215,17 @@ def create_poster(image_file, school, date_text, subject_text):
     footer_text_2 = f"ವಿಷಯ : {subject_text}"
 
     draw.text(
-        (width // 2, height - 250),
+        (width // 2, height - 230),
         footer_text_1,
         font=font_footer_label,
         fill="#F8FAFC",
         anchor="mm",
     )
     draw.text(
-        (width // 2, height - 150),
+        (width // 2, height - 120),
         footer_text_2,
         font=font_footer_value,
         fill="#FFD700",
-        anchor="mm",
-    )
-
-    # 11. Draw Developer Credit Line at the Bottom (Subtle Slate Gray)
-    credit_text = "Design and developed by: Gangadhar, Statistical Inspector, Taluk Office, Malavalli, Mandya"
-    draw.text(
-        (width // 2, height - 45),
-        credit_text,
-        font=font_credit,
-        fill="#94A3B8",  # Executive Slate-400 for a sophisticated watermark appearance
         anchor="mm",
     )
 
@@ -269,3 +258,15 @@ if uploaded_file is not None:
         )
 else:
     st.info("👈 Please upload an image from the sidebar to generate the poster.")
+
+# --- WEBPAGE FOOTER CREDIT ---
+st.markdown("---")
+st.markdown(
+    """
+    <div style='text-align: center; color: #64748B; font-size: 0.9em; padding-top: 10px;'>
+        <b>Design and developed by:</b><br>
+        Gangadhar, Statistical Inspector, Taluk Office, Malavalli, Mandya
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
