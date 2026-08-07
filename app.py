@@ -17,9 +17,15 @@ st.write(
 # --- SIDEBAR / INPUT CONTROLS ---
 st.sidebar.header("Poster Settings")
 
+# Default 2-line school name and address
+default_school_name = (
+    "ಸರ್ಕಾರಿ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ ಹೊಮ್ಮರಗಳ್ಳಿ\nಹೆಚ್ ಡಿ ಕೋಟೆ ತಾಲ್ಲೂಕು ಮೈಸೂರು ಜಿಲ್ಲೆ"
+)
+
 school_name = st.sidebar.text_area(
-    "School Name",
-    value="ಸರ್ಕಾರಿ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ ಹೊಮ್ಮರಗಳ್ಳಿ ಹೆಚ್ ಡಿ ಕೋಟೆ ತಾಲ್ಲೂಕು ಮೈಸೂರು ಜಿಲ್ಲೆ",
+    "School Name (2 Lines Recommended)",
+    value=default_school_name,
+    height=100,
 )
 
 date_input = st.sidebar.text_input("Date (ದಿನಾಂಕ)", value="05-08-2026")
@@ -32,26 +38,6 @@ uploaded_file = st.sidebar.file_uploader(
 )
 
 
-# --- HELPER FUNCTION: AUTO-WRAP TEXT BY PIXEL WIDTH ---
-def wrap_text(text, font, max_width, draw):
-    lines = []
-    for paragraph in text.split("\n"):
-        words = paragraph.split()
-        if not words:
-            continue
-        current_line = words[0]
-        for word in words[1:]:
-            test_line = current_line + " " + word
-            bbox = draw.textbbox((0, 0), test_line, font=font)
-            if (bbox[2] - bbox[0]) <= max_width:
-                current_line = test_line
-            else:
-                lines.append(current_line)
-                current_line = word
-        lines.append(current_line)
-    return "\n".join(lines)
-
-
 # --- HELPER FUNCTION TO DRAW HD POSTER ---
 def create_poster(image_file, school, date_text, subject_text):
     # 1. Create 1080x1920 Full HD Canvas (Vertical Poster Ratio)
@@ -60,7 +46,7 @@ def create_poster(image_file, school, date_text, subject_text):
     draw = ImageDraw.Draw(poster)
 
     # 2. Draw Bottom Orange Banner
-    banner_height = 400
+    banner_height = 390
     draw.rectangle(
         [(0, height - banner_height), (width, height)], fill="#F5B041"
     )
@@ -77,9 +63,9 @@ def create_poster(image_file, school, date_text, subject_text):
 
     # Load fonts
     try:
-        font_title = ImageFont.truetype(font_path, 45)
-        font_school = ImageFont.truetype(font_path, 38)  # Optimized size for 2-3 lines
-        font_badge = ImageFont.truetype(font_path, 58)
+        font_title = ImageFont.truetype(font_path, 44)
+        font_school = ImageFont.truetype(font_path, 40)
+        font_badge = ImageFont.truetype(font_path, 56)
         font_footer = ImageFont.truetype(font_path, 48)
     except IOError:
         st.warning(
@@ -89,62 +75,101 @@ def create_poster(image_file, school, date_text, subject_text):
             ImageFont.load_default()
         )
 
-    # 4. Draw Header Text
+    # 4. Add Karnataka Government Emblem at the Top Center
+    emblem_path = "karnataka_emblem.png"
+    emblem_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Seal_of_Karnataka.svg/300px-Seal_of_Karnataka.svg.png"
+
+    if not os.path.exists(emblem_path):
+        try:
+            urllib.request.urlretrieve(emblem_url, emblem_path)
+        except Exception:
+            pass  # Fail silently if offline; text will still render
+
+    if os.path.exists(emblem_path):
+        try:
+            emblem = Image.open(emblem_path).convert("RGBA")
+            emblem = emblem.resize((120, 120), Image.Resampling.LANCZOS)
+            emblem_x = (width - emblem.width) // 2
+            emblem_y = 25
+            poster.paste(emblem, (emblem_x, emblem_y), emblem)
+        except Exception:
+            pass
+
+    # 5. Draw Header Text (Karnataka Govt & Department)
     draw.text(
-        (width // 2, 80),
+        (width // 2, 180),
         "ಕರ್ನಾಟಕ ಸರ್ಕಾರ",
         font=font_title,
         fill="#900C3F",
         anchor="mm",
     )
     draw.text(
-        (width // 2, 140),
+        (width // 2, 240),
         "ಶಾಲಾ ಶಿಕ್ಷಣ ಮತ್ತು ಸಾಕ್ಷರತಾ ಇಲಾಖೆ",
         font=font_title,
         fill="#1A5276",
         anchor="mm",
     )
 
-    # 5. Automatically wrap and draw Multiline School Name (Max width: 940px)
-    wrapped_school = wrap_text(school, font_school, 940, draw)
-    draw.multiline_text(
-        (width // 2, 235),
-        wrapped_school,
-        font=font_school,
-        fill="#900C3F",
-        anchor="mm",
-        align="center",
-        spacing=12,
-    )
+    # 6. Draw School Name in exactly 2 lines with proper spacing
+    lines = [line.strip() for line in school.split("\n") if line.strip()]
 
-    # 6. Draw "ಸಚೇತನ" Pink Badge
-    badge_w, badge_h = 360, 100
+    if len(lines) >= 1:
+        # Line 1: ಸರ್ಕಾರಿ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ ಹೊಮ್ಮರಗಳ್ಳಿ
+        draw.text(
+            (width // 2, 310),
+            lines[0],
+            font=font_school,
+            fill="#900C3F",
+            anchor="mm",
+        )
+    if len(lines) >= 2:
+        # Line 2: ಹೆಚ್ ಡಿ ಕೋಟೆ ತಾಲ್ಲೂಕು ಮೈಸೂರು ಜಿಲ್ಲೆ (with 65px line spacing)
+        draw.text(
+            (width // 2, 375),
+            lines[1],
+            font=font_school,
+            fill="#900C3F",
+            anchor="mm",
+        )
+
+    # 7. Draw "ಸಚೇತನ" Pink Badge
+    badge_w, badge_h = 340, 90
     badge_x0 = (width - badge_w) // 2
-    badge_y0 = 340
+    badge_y0 = 435
     draw.rounded_rectangle(
         [
             (badge_x0, badge_y0),
             (badge_x0 + badge_w, badge_y0 + badge_h),
         ],
-        radius=25,
+        radius=22,
         fill="#F1948A",
     )
     draw.text(
-        (width // 2, badge_y0 + 50),
+        (width // 2, badge_y0 + 45),
         "ಸಚೇತನ",
         font=font_badge,
         fill="#900C3F",
         anchor="mm",
     )
 
-    # 7. Process and Center Uploaded Image
+    # 8. Process, Auto-Fit, and Center Uploaded Image
     if image_file:
         img = Image.open(image_file).convert("RGB")
-        target_w, target_h = 900, 950
-        img.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
 
+        # Define maximum available photo canvas area
+        max_w, max_h = 940, 940
+
+        # Calculate scale ratio to auto-fit without distorting aspect ratio
+        ratio = min(max_w / img.width, max_h / img.height)
+        new_size = (int(img.width * ratio), int(img.height * ratio))
+        img = img.resize(new_size, Image.Resampling.LANCZOS)
+
+        # Center the image horizontally and vertically in the middle canvas area
         paste_x = (width - img.width) // 2
-        paste_y = 480
+        paste_y = 550 + (max_h - img.height) // 2
+
+        # Draw a clean white border frame
         border = 15
         draw.rectangle(
             [
@@ -153,21 +178,23 @@ def create_poster(image_file, school, date_text, subject_text):
             ],
             fill="white",
         )
+
+        # Paste uploaded photo
         poster.paste(img, (paste_x, paste_y))
 
-    # 8. Draw Footer Text (Date & Subject)
+    # 9. Draw Footer Text (Date & Subject)
     footer_text_1 = f"ದಿನಾಂಕ: {date_text}"
     footer_text_2 = f"ವಿಷಯ - {subject_text}"
 
     draw.text(
-        (width // 2, height - 260),
+        (width // 2, height - 250),
         footer_text_1,
         font=font_footer,
         fill="#1B4F72",
         anchor="mm",
     )
     draw.text(
-        (width // 2, height - 150),
+        (width // 2, height - 140),
         footer_text_2,
         font=font_footer,
         fill="#1B4F72",
