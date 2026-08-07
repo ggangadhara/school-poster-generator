@@ -9,7 +9,7 @@ st.set_page_config(
     page_title="School HD Poster Generator", page_icon="🏫", layout="centered"
 )
 
-st.title("🏫 School Poster Generator (HD)")
+st.title("🏫 School Poster Generator (HD - Modern Formal)")
 st.write(
     "Upload an event photo and update the details to generate an HD poster."
 )
@@ -36,7 +36,6 @@ def download_file(url, filepath):
 # --- SIDEBAR / INPUT CONTROLS ---
 st.sidebar.header("Poster Settings")
 
-# Default 2-line school name and address
 default_school_name = (
     "ಸರ್ಕಾರಿ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ ಹೊಮ್ಮರಗಳ್ಳಿ\nಹೆಚ್ ಡಿ ಕೋಟೆ ತಾಲ್ಲೂಕು ಮೈಸೂರು ಜಿಲ್ಲೆ"
 )
@@ -59,36 +58,44 @@ uploaded_file = st.sidebar.file_uploader(
 
 # --- HELPER FUNCTION TO DRAW HD POSTER ---
 def create_poster(image_file, school, date_text, subject_text):
-    # 1. Create 1080x1920 Full HD Canvas (Vertical Poster Ratio)
+    # 1. Create 1080x1920 Full HD Canvas with an Executive Off-White/Ivory Base
     width, height = 1080, 1920
-    poster = Image.new("RGB", (width, height), color="#D5F5E3")  # Light green
+    poster = Image.new("RGB", (width, height), color="#F8FAFC")
     draw = ImageDraw.Draw(poster)
 
-    # 2. Draw Bottom Orange Banner
-    banner_height = 390
+    # 2. Draw Top Karnataka Decorative Accent Bars (Red & Yellow)
+    draw.rectangle([(0, 0), (width, 14)], fill="#D32F2F")  # Deep Red stripe
     draw.rectangle(
-        [(0, height - banner_height), (width, height)], fill="#F5B041"
-    )
+        [(0, 14), (width, 28)], fill="#FFC107"
+    )  # Vibrant Gold stripe
 
-    # 3. Download and Load Kannada Font
+    # 3. Draw Modern Dark Navy Footer Banner with a Gold Top Border
+    footer_height = 320
+    footer_y0 = height - footer_height
+    draw.rectangle([(0, footer_y0 - 6), (width, footer_y0)], fill="#FFC107")
+    draw.rectangle([(0, footer_y0), (width, height)], fill="#0F172A")
+
+    # 4. Download and Load Kannada Font
     font_path = "NotoSansKannada-Bold.ttf"
     font_url = "https://raw.githubusercontent.com/openmaptiles/fonts/master/noto-sans/NotoSansKannada-Bold.ttf"
     download_file(font_url, font_path)
 
     try:
-        font_title = ImageFont.truetype(font_path, 44)
-        font_school = ImageFont.truetype(font_path, 40)
-        font_badge = ImageFont.truetype(font_path, 56)
-        font_footer = ImageFont.truetype(font_path, 48)
+        font_title = ImageFont.truetype(font_path, 42)
+        font_sub = ImageFont.truetype(font_path, 38)
+        font_school = ImageFont.truetype(font_path, 38)
+        font_badge = ImageFont.truetype(font_path, 52)
+        font_footer_label = ImageFont.truetype(font_path, 42)
+        font_footer_value = ImageFont.truetype(font_path, 46)
     except IOError:
         st.warning(
             "⚠️ Kannada font could not be loaded. Text may not render correctly."
         )
-        font_title = font_school = font_badge = font_footer = (
-            ImageFont.load_default()
-        )
+        font_title = font_sub = font_school = font_badge = font_footer_label = (
+            font_footer_value
+        ) = ImageFont.load_default()
 
-    # 4. Download and Draw Karnataka Government Emblem
+    # 5. Download and Place Karnataka Government Emblem
     emblem_path = "karnataka_emblem.png"
     emblem_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Seal_of_Karnataka.svg/300px-Seal_of_Karnataka.svg.png"
     download_file(emblem_url, emblem_path)
@@ -96,116 +103,129 @@ def create_poster(image_file, school, date_text, subject_text):
     if os.path.exists(emblem_path):
         try:
             emblem = Image.open(emblem_path).convert("RGBA")
-            emblem = emblem.resize((130, 130), Image.Resampling.LANCZOS)
+            emblem = emblem.resize((120, 120), Image.Resampling.LANCZOS)
             emblem_x = (width - emblem.width) // 2
-            emblem_y = 30
+            emblem_y = 45
             poster.paste(emblem, (emblem_x, emblem_y), emblem)
         except Exception as e:
             st.warning(f"⚠️ Could not render emblem image: {e}")
 
-    # 5. Draw Header Text (Karnataka Govt & Department)
+    # 6. Draw Professional Header Text (Distinct Hierarchy)
     draw.text(
-        (width // 2, 185),
+        (width // 2, 190),
         "ಕರ್ನಾಟಕ ಸರ್ಕಾರ",
         font=font_title,
         fill="#900C3F",
         anchor="mm",
-    )
+    )  # Rich Burgundy
     draw.text(
         (width // 2, 245),
         "ಶಾಲಾ ಶಿಕ್ಷಣ ಮತ್ತು ಸಾಕ್ಷರತಾ ಇಲಾಖೆ",
-        font=font_title,
-        fill="#1A5276",
+        font=font_sub,
+        fill="#1E3A8A",
         anchor="mm",
-    )
+    )  # Deep Royal Navy
 
-    # 6. Draw School Name in exactly 2 lines with proper spacing
+    # 7. Draw School Name in 2 Clean Lines (Slate Charcoal for High Legibility)
     lines = [line.strip() for line in school.split("\n") if line.strip()]
-
     if len(lines) >= 1:
-        # Line 1: ಸರ್ಕಾರಿ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ ಹೊಮ್ಮರಗಳ್ಳಿ
         draw.text(
             (width // 2, 315),
             lines[0],
             font=font_school,
-            fill="#900C3F",
+            fill="#1F2937",
             anchor="mm",
         )
     if len(lines) >= 2:
-        # Line 2: ಹೆಚ್ ಡಿ ಕೋಟೆ ತಾಲ್ಲೂಕು ಮೈಸೂರು ಜಿಲ್ಲೆ
         draw.text(
-            (width // 2, 380),
+            (width // 2, 375),
             lines[1],
             font=font_school,
-            fill="#900C3F",
+            fill="#374151",
             anchor="mm",
         )
 
-    # 7. Draw "ಸಚೇತನ" Pink Badge
-    badge_w, badge_h = 340, 90
+    # 8. Draw "ಸಚೇತನ" Executive Pill Badge (Burgundy Fill with Crisp White Text)
+    badge_w, badge_h = 320, 80
     badge_x0 = (width - badge_w) // 2
-    badge_y0 = 440
+    badge_y0 = 430
     draw.rounded_rectangle(
         [
             (badge_x0, badge_y0),
             (badge_x0 + badge_w, badge_y0 + badge_h),
         ],
-        radius=22,
-        fill="#F1948A",
+        radius=40,
+        fill="#800020",
     )
     draw.text(
-        (width // 2, badge_y0 + 45),
+        (width // 2, badge_y0 + 40),
         "ಸಚೇತನ",
         font=font_badge,
-        fill="#900C3F",
+        fill="#FFFFFF",
         anchor="mm",
     )
 
-    # 8. Process, Auto-Fit, and Center Uploaded Image
+    # 9. Process, Auto-Fit, and Frame Photo with a Realistic Multi-Layer Shadow
     if image_file:
         img = Image.open(image_file).convert("RGB")
+        max_w, max_h = 920, 960
 
-        # Define maximum available photo canvas area
-        max_w, max_h = 940, 930
-
-        # Calculate scale ratio to auto-fit without distorting aspect ratio
         ratio = min(max_w / img.width, max_h / img.height)
         new_size = (int(img.width * ratio), int(img.height * ratio))
         img = img.resize(new_size, Image.Resampling.LANCZOS)
 
-        # Center the image horizontally and vertically in the middle canvas area
         paste_x = (width - img.width) // 2
-        paste_y = 555 + (max_h - img.height) // 2
+        paste_y = 545 + (max_h - img.height) // 2
+        border = 18
 
-        # Draw a clean white border frame
-        border = 15
-        draw.rectangle(
+        # Outer Shadow (Simulated Drop-Shadow for 3D Depth)
+        shadow_offset = 12
+        draw.rounded_rectangle(
+            [
+                (
+                    paste_x - border + shadow_offset,
+                    paste_y - border + shadow_offset,
+                ),
+                (
+                    paste_x + img.width + border + shadow_offset,
+                    paste_y + img.height + border + shadow_offset,
+                ),
+            ],
+            radius=12,
+            fill="#CBD5E1",
+        )
+
+        # Crisp White Polaroid-Style Card Frame
+        draw.rounded_rectangle(
             [
                 (paste_x - border, paste_y - border),
                 (paste_x + img.width + border, paste_y + img.height + border),
             ],
-            fill="white",
+            radius=12,
+            fill="#FFFFFF",
+            outline="#E2E8F0",
+            width=2,
         )
 
-        # Paste uploaded photo
+        # Paste Uploaded Photo
         poster.paste(img, (paste_x, paste_y))
 
-    # 9. Draw Footer Text (Date & Subject)
-    footer_text_1 = f"ದಿನಾಂಕ: {date_text}"
-    footer_text_2 = f"ವಿಷಯ - {subject_text}"
+    # 10. Draw Formal Footer Content (Gold & Crisp White Typography on Navy)
+    footer_text_1 = f"ದಿನಾಂಕ : {date_text}"
+    footer_text_2 = f"ವಿಷಯ : {subject_text}"
 
     draw.text(
-        (width // 2, height - 250),
+        (width // 2, height - 230),
         footer_text_1,
-        font=font_footer,
-        fill="#1B4F72",
+        font=font_footer_label,
+        fill="#F8FAFC",
         anchor="mm",
     )
     draw.text(
-        (width // 2, height - 140),
+        (width // 2, height - 120),
         footer_text_2,
-        font=font_footer,
-        fill="#1B4F72",
+        font=font_footer_value,
+        fill="#FFD700",
         anchor="mm",
     )
 
@@ -214,14 +234,14 @@ def create_poster(image_file, school, date_text, subject_text):
 
 # --- APP EXECUTION ---
 if uploaded_file is not None:
-    with st.spinner("Generating High-Resolution Poster..."):
+    with st.spinner("Generating Professional High-Resolution Poster..."):
         hd_poster = create_poster(
             uploaded_file, school_name, date_input, subject_input
         )
 
         st.image(
             hd_poster,
-            caption="HD Poster Preview (1080x1920)",
+            caption="HD Professional Poster Preview (1080x1920)",
             use_container_width=True,
         )
 
@@ -232,7 +252,7 @@ if uploaded_file is not None:
         st.download_button(
             label="📥 Download HD Poster (PNG)",
             data=byte_im,
-            file_name="school_poster_hd.png",
+            file_name="school_poster_professional_hd.png",
             mime="image/png",
             use_container_width=True,
         )
