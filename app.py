@@ -56,35 +56,19 @@ def create_poster(image_file, school, date_text, subject_text):
         except Exception as e:
             st.warning(f"⚠️ Could not download font automatically: {e}")
 
-    # Use LAYOUT_RAQM to properly shape Kannada conjuncts & vowel signs
+    # Load fonts (Pillow automatically uses RaQm for Kannada if libraqm0 is installed via packages.txt)
     try:
-        layout = ImageFont.LAYOUT_RAQM
-        font_title = ImageFont.truetype(
-            font_path, 45, layout_engine=layout
+        font_title = ImageFont.truetype(font_path, 45)
+        font_school = ImageFont.truetype(font_path, 42)
+        font_badge = ImageFont.truetype(font_path, 60)
+        font_footer = ImageFont.truetype(font_path, 50)
+    except IOError:
+        st.warning(
+            "⚠️ Kannada font could not be loaded. Text may not render correctly."
         )
-        font_school = ImageFont.truetype(
-            font_path, 42, layout_engine=layout
+        font_title = font_school = font_badge = font_footer = (
+            ImageFont.load_default()
         )
-        font_badge = ImageFont.truetype(
-            font_path, 60, layout_engine=layout
-        )
-        font_footer = ImageFont.truetype(
-            font_path, 50, layout_engine=layout
-        )
-    except (IOError, KeyError, ValueError):
-        # Fallback if RaQm is unavailable on the system
-        try:
-            font_title = ImageFont.truetype(font_path, 45)
-            font_school = ImageFont.truetype(font_path, 42)
-            font_badge = ImageFont.truetype(font_path, 60)
-            font_footer = ImageFont.truetype(font_path, 50)
-        except IOError:
-            st.warning(
-                "⚠️ Kannada font could not be loaded. Text may not render correctly."
-            )
-            font_title = font_school = font_badge = font_footer = (
-                ImageFont.load_default()
-            )
 
     # 4. Draw Header Text
     draw.text(
