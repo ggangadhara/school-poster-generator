@@ -1,5 +1,6 @@
 import io
 import os
+import urllib.request
 from PIL import Image, ImageDraw, ImageFont
 import streamlit as st
 
@@ -44,8 +45,17 @@ def create_poster(image_file, school, date_text, subject_text):
         [(0, height - banner_height), (width, height)], fill="#F5B041"
     )
 
-    # 3. Load Kannada Font (Fallback to default if font file missing)
+    # 3. Load Kannada Font (Auto-download from Google Fonts if missing)
     font_path = "NotoSansKannada-Bold.ttf"
+    font_url = "https://github.com/google/fonts/raw/main/ofl/notosanskannada/NotoSansKannada-Bold.ttf"
+
+    # Automatically fetch the font file if not found locally
+    if not os.path.exists(font_path):
+        try:
+            urllib.request.urlretrieve(font_url, font_path)
+        except Exception as e:
+            st.warning(f"⚠️ Could not download font automatically: {e}")
+
     try:
         font_title = ImageFont.truetype(font_path, 45)
         font_school = ImageFont.truetype(font_path, 42)
@@ -53,7 +63,7 @@ def create_poster(image_file, school, date_text, subject_text):
         font_footer = ImageFont.truetype(font_path, 50)
     except IOError:
         st.warning(
-            "⚠️ 'NotoSansKannada-Bold.ttf' not found. Kannada text may not render correctly."
+            "⚠️ Kannada font could not be loaded. Text may not render correctly."
         )
         font_title = font_school = font_badge = font_footer = (
             ImageFont.load_default()
@@ -179,4 +189,3 @@ if uploaded_file is not None:
         )
 else:
     st.info("👈 Please upload an image from the sidebar to generate the poster.")
-  
