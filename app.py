@@ -45,9 +45,9 @@ def create_poster(image_file, school, date_text, subject_text):
         [(0, height - banner_height), (width, height)], fill="#F5B041"
     )
 
-    # 3. Load Kannada Font (Auto-download from Google Fonts if missing)
+    # 3. Load Kannada Font (Auto-download from openmaptiles mirror if missing)
     font_path = "NotoSansKannada-Bold.ttf"
-    font_url = "https://github.com/google/fonts/raw/main/ofl/notosanskannada/NotoSansKannada-Bold.ttf"
+    font_url = "https://raw.githubusercontent.com/openmaptiles/fonts/master/noto-sans/NotoSansKannada-Bold.ttf"
 
     # Automatically fetch the font file if not found locally
     if not os.path.exists(font_path):
