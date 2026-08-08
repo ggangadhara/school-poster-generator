@@ -36,7 +36,6 @@ def download_file(url, filepath):
 # --- SIDEBAR / INPUT CONTROLS ---
 st.sidebar.header("1. Theme & Appearance")
 
-# Dictionary mapping formal names to hex codes
 THEME_COLORS = {
     "Warm Parchment Beige (Traditional)": "#F4F1EA",
     "Muted Sage Green (Eco / Pollution Theme)": "#E8F0EC",
@@ -48,7 +47,7 @@ THEME_COLORS = {
 selected_theme_name = st.sidebar.selectbox(
     "Select Background Color",
     options=list(THEME_COLORS.keys()),
-    index=1,  # Default to Muted Sage Green since subject is pollution
+    index=1,
 )
 selected_bg_color = THEME_COLORS[selected_theme_name]
 
@@ -135,16 +134,16 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
         font=font_title,
         fill="#900C3F",
         anchor="mm",
-    )  # Rich Burgundy
+    )
     draw.text(
         (width // 2, 245),
         "ಶಾಲಾ ಶಿಕ್ಷಣ ಮತ್ತು ಸಾಕ್ಷರತಾ ಇಲಾಖೆ",
         font=font_sub,
         fill="#1E3A8A",
         anchor="mm",
-    )  # Deep Royal Navy
+    )
 
-    # 7. Draw School Name in 2 Clean Lines (Slate Charcoal for High Legibility)
+    # 7. Draw School Name in 2 Clean Lines
     lines = [line.strip() for line in school.split("\n") if line.strip()]
     if len(lines) >= 1:
         draw.text(
@@ -163,7 +162,7 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
             anchor="mm",
         )
 
-    # 8. Draw "ಸಚೇತನ" Executive Pill Badge (Burgundy Fill with Crisp White Text)
+    # 8. Draw "ಸಚೇತನ" Executive Pill Badge
     badge_w, badge_h = 320, 80
     badge_x0 = (width - badge_w) // 2
     badge_y0 = 430
@@ -183,20 +182,30 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
         anchor="mm",
     )
 
-    # 9. Process, Auto-Fit, and Frame Photo with a Realistic Multi-Layer Shadow
+    # 9. Dynamically Auto-Fit Photo to Utilize All Available Middle Canvas Space
     if image_file:
         img = Image.open(image_file).convert("RGB")
-        max_w, max_h = 920, 940
 
+        # Max available width (1000px = 40px left/right margins) and height (1030px)
+        max_w, max_h = 1000, 1030
+
+        # Scale image up or down to be as large as possible without overflowing
         ratio = min(max_w / img.width, max_h / img.height)
         new_size = (int(img.width * ratio), int(img.height * ratio))
         img = img.resize(new_size, Image.Resampling.LANCZOS)
 
+        # Center horizontally
         paste_x = (width - img.width) // 2
-        paste_y = 540 + (max_h - img.height) // 2
+
+        # Dynamically center vertically between bottom of badge (515) and top of footer (1575)
+        available_top = 525
+        available_bottom = footer_y0 - 15  # 1565
+        available_height = available_bottom - available_top
+        paste_y = available_top + (available_height - img.height) // 2
+
         border = 18
 
-        # Outer Shadow (Simulated Drop-Shadow for 3D Depth)
+        # Outer Shadow for 3D Depth
         shadow_offset = 12
         draw.rounded_rectangle(
             [
@@ -213,7 +222,7 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
             fill="#CBD5E1",
         )
 
-        # Crisp White Polaroid-Style Card Frame
+        # Crisp White Card Frame
         draw.rounded_rectangle(
             [
                 (paste_x - border, paste_y - border),
@@ -228,7 +237,7 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
         # Paste Uploaded Photo
         poster.paste(img, (paste_x, paste_y))
 
-    # 10. Draw Formal Footer Content (Date & Subject)
+    # 10. Draw Formal Footer Content
     footer_text_1 = f"ದಿನಾಂಕ : {date_text}"
     footer_text_2 = f"ವಿಷಯ : {subject_text}"
 
