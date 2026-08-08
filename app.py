@@ -1,7 +1,7 @@
 import io
 import os
 import urllib.request
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 import streamlit as st
 
 # Set page configuration
@@ -11,7 +11,7 @@ st.set_page_config(
 
 st.title("🏫 Sachetana Poster Generator")
 st.write(
-    "Upload your event photo and update the Date & Subject to generate an HD poster."
+    "Upload your daily school activity photo and update the details to generate an official HD poster."
 )
 
 
@@ -33,13 +33,31 @@ def download_file(url, filepath):
             st.warning(f"⚠️ Could not download {filepath}: {e}")
 
 
-# --- SIDEBAR: EVENT DETAILS ---
-st.sidebar.header("Event Details")
+# --- SIDEBAR: EVENT DETAILS & CONTROLS ---
+st.sidebar.header("Activity Details")
 
-date_input = st.sidebar.text_input("Date (ದಿನಾಂಕ)", value="05-08-2026")
-subject_input = st.sidebar.text_input(
-    "Subject (ವಿಷಯ)", value="ಮಾಲಿನ್ಯ ತಡೆಗಟ್ಟುವುದು."
+# Activity Category Chip Selector
+CATEGORY_TAGS = {
+    "ಪರಿಸರ ಕ್ಲಬ್ (Eco Club)": "• ಪರಿಸರ ಕ್ಲಬ್",
+    "ಸ್ವಚ್ಛ ಭಾರತ (Swachh Bharat)": "• ಸ್ವಚ್ಛ ಭಾರತ",
+    "ಶೈಕ್ಷಣಿಕ ಚಟುವಟಿಕೆ (Academics)": "• ಶೈಕ್ಷಣಿಕ ಚಟುವಟಿಕೆ",
+    "ಸಾಂಸ್ಕೃತಿಕ (Cultural)": "• ಸಾಂಸ್ಕೃತಿಕ",
+    "ಕ್ರೀಡೆ ಮತ್ತು ದೈಹಿಕ ಶಿಕ್ಷಣ (Sports)": "• ಕ್ರೀಡೆ",
+    "ಸಚೇತನ ವಿಶೇಷ (Sachetana Special)": "• ಸಚೇತನ ವಿಶೇಷ",
+}
+
+selected_category_label = st.sidebar.selectbox(
+    "Activity Category Tag",
+    options=list(CATEGORY_TAGS.keys()),
+    index=0,
 )
+category_tag_text = CATEGORY_TAGS[selected_category_label]
+
+subject_input = st.sidebar.text_input(
+    "Activity Title (ವಿಷಯ)", value="ಮಾಲಿನ್ಯ ತಡೆಗಟ್ಟುವುದು."
+)
+
+date_input = st.sidebar.text_input("Date (ದಿನಾಂಕ)", value="08-08-2026")
 
 uploaded_file = st.sidebar.file_uploader(
     "Upload School Photo", type=["jpg", "jpeg", "png"]
@@ -54,7 +72,7 @@ with st.sidebar.expander("⚙️ Advanced: Edit Fixed School Name"):
 
 
 # --- HELPER FUNCTION TO DRAW HD POSTER ---
-def create_poster(image_file, school, date_text, subject_text):
+def create_poster(image_file, school, category_text, subject_text, date_text):
     # 1. Create 1080x1920 Full HD Canvas (Fixed Warm Parchment Beige #F4F1EA)
     width, height = 1080, 1920
     bg_color = "#F4F1EA"
@@ -77,15 +95,16 @@ def create_poster(image_file, school, date_text, subject_text):
         font_sub = ImageFont.truetype(font_path, 38)
         font_school = ImageFont.truetype(font_path, 38)
         font_badge = ImageFont.truetype(font_path, 52)
-        font_footer_label = ImageFont.truetype(font_path, 44)
-        font_footer_value = ImageFont.truetype(font_path, 48)
+        font_category = ImageFont.truetype(font_path, 30)
+        font_hero_title = ImageFont.truetype(font_path, 52)
+        font_date = ImageFont.truetype(font_path, 36)
     except IOError:
         st.warning(
             "⚠️ Kannada font could not be loaded. Text may not render correctly."
         )
-        font_title = font_sub = font_school = font_badge = font_footer_label = (
-            font_footer_value
-        ) = ImageFont.load_default()
+        font_title = font_sub = font_school = font_badge = font_category = (
+            font_hero_title
+        ) = font_date = ImageFont.load_default()
 
     # 4. Download and Place Karnataka Government Emblem (500px authorized size)
     emblem_path = "karnataka_emblem.png"
@@ -157,20 +176,28 @@ def create_poster(image_file, school, date_text, subject_text):
         anchor="mm",
     )
 
-    # 8. STANDARD FRAME WITH FULL-FRAME STRETCH (No background card, no shadows)
+    # 8. SMART HUMAN-AWARE IMAGE FITTING (Zero padding, zero distortion)
     target_w, target_h = 1000, 960
     paste_x = (width - target_w) // 2
     paste_y = 550
 
     if image_file:
         img = Image.open(image_file).convert("RGB")
-        # Full Frame Stretch: Exact resize to fill 100% of target area without cropping or padding
-        img_processed = img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+        # Top-weighted aspect fill (0.08): Fills 100% of frame without squashing faces
+        img_processed = ImageOps.fit(
+            img,
+            (target_w, target_h),
+            method=Image.Resampling.LANCZOS,
+            centering=(0.5, 0.08),
+        )
         poster.paste(img_processed, (paste_x, paste_y))
 
-        # Standard clean thin border outline around the image
+        # Crisp standard border outline around the image
         draw.rectangle(
-            [(paste_x - 1, paste_y - 1), (paste_x + target_w + 1, paste_y + target_h + 1)],
+            [
+                (paste_x - 1, paste_y - 1),
+                (paste_x + target_w + 1, paste_y + target_h + 1),
+            ],
             outline="#CBD5E1",
             width=2,
         )
@@ -190,7 +217,7 @@ def create_poster(image_file, school, date_text, subject_text):
             anchor="mm",
         )
 
-    # 9. UNIFORM FOOTER CARD (Blends smoothly with slight elevation difference)
+    # 9. PROFESSIONAL FOOTER CARD WITH HIERARCHY
     card_w, card_h = 960, 260
     card_x0 = (width - card_w) // 2
     card_y0 = 1575
@@ -207,22 +234,44 @@ def create_poster(image_file, school, date_text, subject_text):
         width=3,
     )
 
-    # Draw Footer Text inside cohesive card
-    footer_text_1 = f"ದಿನಾಂಕ : {date_text}"
-    footer_text_2 = f"ವಿಷಯ : {subject_text}"
-
-    draw.text(
-        (width // 2, card_y0 + 80),
-        footer_text_1,
-        font=font_footer_label,
-        fill="#1E3A8A",  # Royal Navy
-        anchor="mm",
+    # A. Draw Activity Category Pill Chip (Top Center of Card)
+    chip_w, chip_h = 240, 48
+    chip_x0 = (width - chip_w) // 2
+    chip_y0 = card_y0 + 24
+    draw.rounded_rectangle(
+        [
+            (chip_x0, chip_y0),
+            (chip_x0 + chip_w, chip_y0 + chip_h),
+        ],
+        radius=14,
+        fill="#EFF6FF",
+        outline="#3B82F6",
+        width=2,
     )
     draw.text(
-        (width // 2, card_y0 + 175),
-        footer_text_2,
-        font=font_footer_value,
-        fill="#800020",  # Rich Burgundy
+        (width // 2, chip_y0 + 24),
+        category_text,
+        font=font_category,
+        fill="#1D4ED8",
+        anchor="mm",
+    )
+
+    # B. Draw Hero Activity Title (Large Burgundy text for instant readability)
+    draw.text(
+        (width // 2, card_y0 + 130),
+        subject_text,
+        font=font_hero_title,
+        fill="#800020",
+        anchor="mm",
+    )
+
+    # C. Draw Date (Secondary Slate Gray hierarchy at bottom)
+    formatted_date = f"ದಿನಾಂಕ : {date_text}"
+    draw.text(
+        (width // 2, card_y0 + 208),
+        formatted_date,
+        font=font_date,
+        fill="#475569",
         anchor="mm",
     )
 
@@ -235,8 +284,9 @@ if uploaded_file is not None:
         hd_poster = create_poster(
             uploaded_file,
             school_name,
-            date_input,
+            category_tag_text,
             subject_input,
+            date_input,
         )
 
         st.image(
