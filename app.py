@@ -77,8 +77,8 @@ def create_poster(image_file, school, date_text, subject_text):
         font_sub = ImageFont.truetype(font_path, 38)
         font_school = ImageFont.truetype(font_path, 38)
         font_badge = ImageFont.truetype(font_path, 52)
-        font_footer_label = ImageFont.truetype(font_path, 44)
-        font_footer_value = ImageFont.truetype(font_path, 48)
+        font_footer_label = ImageFont.truetype(font_path, 38)  # Smaller secondary Date
+        font_footer_value = ImageFont.truetype(font_path, 54)  # Larger hero Subject
     except IOError:
         st.warning(
             "⚠️ Kannada font could not be loaded. Text may not render correctly."
@@ -190,12 +190,12 @@ def create_poster(image_file, school, date_text, subject_text):
             anchor="mm",
         )
 
-    # 9. UNIFORM FOOTER CARD (Blends smoothly with slight elevation difference)
+    # 9. UNIFORM FOOTER CARD WITH HERO SUBJECT HIGHLIGHT
     card_w, card_h = 960, 260
     card_x0 = (width - card_w) // 2
     card_y0 = 1575
 
-    # White elevated info card
+    # A. Outer White Elevated Card
     draw.rounded_rectangle(
         [
             (card_x0, card_y0),
@@ -207,19 +207,36 @@ def create_poster(image_file, school, date_text, subject_text):
         width=3,
     )
 
-    # Draw Footer Text inside cohesive card
+    # B. Draw Secondary Date Text at Top of Card
     footer_text_1 = f"ದಿನಾಂಕ : {date_text}"
-    footer_text_2 = f"ವಿಷಯ : {subject_text}"
-
     draw.text(
-        (width // 2, card_y0 + 80),
+        (width // 2, card_y0 + 60),
         footer_text_1,
         font=font_footer_label,
         fill="#1E3A8A",  # Royal Navy
         anchor="mm",
     )
+
+    # C. Highlight Pill Container Behind the Subject (Makes it pop instantly!)
+    pill_x0 = card_x0 + 35
+    pill_x1 = card_x0 + card_w - 35
+    pill_y0 = card_y0 + 110
+    pill_y1 = card_y0 + 225
+    draw.rounded_rectangle(
+        [
+            (pill_x0, pill_y0),
+            (pill_x1, pill_y1),
+        ],
+        radius=20,
+        fill="#FDEDEC",      # Soft blush-pink highlight tint
+        outline="#E6B0AA",   # Warm rose border
+        width=2,
+    )
+
+    # D. Draw Hero Subject Text inside Highlight Pill
+    footer_text_2 = f"ವಿಷಯ - {subject_text}"
     draw.text(
-        (width // 2, card_y0 + 175),
+        (width // 2, pill_y0 + 58),
         footer_text_2,
         font=font_footer_value,
         fill="#800020",  # Rich Burgundy
