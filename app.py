@@ -51,12 +51,12 @@ selected_theme_name = st.sidebar.selectbox(
 )
 selected_bg_color = THEME_COLORS[selected_theme_name]
 
-# Clean scaling selector (No blurring)
+# Framing mode selector (Default set to Full Frame Stretch without padding or cropping)
 fit_mode = st.sidebar.selectbox(
     "Photo Framing Mode",
     options=[
+        "↔️ Full Frame Stretch (No Crop + No Padding)",
         "🔍 Zoom to Fill (Smart - Preserves Heads)",
-        "🖼️ Fit Entire Photo (Clean White Padding)",
         "⬜ Center Zoom & Crop (Standard)",
     ],
     index=0,
@@ -81,18 +81,12 @@ with st.sidebar.expander("⚙️ Advanced: Edit Fixed School Name"):
     )
 
 
-# --- HELPER FUNCTION: CLEAN ZOOM / DECREASE FITTING ---
+# --- HELPER FUNCTION: ZERO-PADDING / ZERO-CROPPING PHOTO FIT ---
 def process_smart_photo(img, target_w, target_h, mode):
-    if "Fit Entire Photo" in mode:
-        # Scales/decreases the photo to fit 100% inside the target box without cropping
-        # Pads any remaining space with a crisp white photo-mat border (#FFFFFF)
-        return ImageOps.pad(
-            img,
-            (target_w, target_h),
-            method=Image.Resampling.LANCZOS,
-            color="#FFFFFF",
-            centering=(0.5, 0.5),
-        )
+    if "Full Frame Stretch" in mode:
+        # Exact resize: Fits 100% of the photo into the 1000x960 box
+        # Leaves ZERO white padding and crops ZERO pixels from the image
+        return img.resize((target_w, target_h), Image.Resampling.LANCZOS)
 
     elif "Smart" in mode:
         # Zooms in to fill 100% of the target box
@@ -219,7 +213,7 @@ def create_poster(
         anchor="mm",
     )
 
-    # 8. FULL-FRAME ZOOM / DECREASE FITTING
+    # 8. FULL-FRAME PHOTO FITTING (Zero Padding & Zero Cropping by Default)
     target_w, target_h = 1000, 960
     paste_x = (width - target_w) // 2
     paste_y = 545
@@ -253,7 +247,7 @@ def create_poster(
 
     if image_file:
         img = Image.open(image_file).convert("RGB")
-        # Apply clean zoom/pad scaling based on selected mode
+        # Apply exact frame stretching or smart zooming based on selected sidebar mode
         img_processed = process_smart_photo(img, target_w, target_h, photo_mode)
         poster.paste(img_processed, (paste_x, paste_y))
     else:
