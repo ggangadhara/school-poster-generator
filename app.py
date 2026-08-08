@@ -1,7 +1,7 @@
 import io
 import os
 import urllib.request
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 import streamlit as st
 
 # Set page configuration
@@ -33,8 +33,8 @@ def download_file(url, filepath):
             st.warning(f"⚠️ Could not download {filepath}: {e}")
 
 
-# --- SIDEBAR: DYNAMIC CONTROLS (ONLY WHAT CHANGES) ---
-st.sidebar.header("1. Theme Selection")
+# --- SIDEBAR: DYNAMIC CONTROLS ---
+st.sidebar.header("1. Theme & Framing")
 
 THEME_COLORS = {
     "Warm Parchment Beige (Traditional)": "#F4F1EA",
@@ -50,6 +50,17 @@ selected_theme_name = st.sidebar.selectbox(
     index=1,
 )
 selected_bg_color = THEME_COLORS[selected_theme_name]
+
+# Smart Framing Selector to prevent head cropping
+fit_mode = st.sidebar.selectbox(
+    "Photo Framing Mode",
+    options=[
+        "🧠 Smart Crop (Preserve Heads & Faces)",
+        "🖼️ Fit Entire Photo (No Crop + Blurred Bg)",
+        "⬜ Center Crop (Standard)",
+    ],
+    index=0,
+)
 
 st.sidebar.header("2. Event Details")
 
@@ -70,8 +81,53 @@ with st.sidebar.expander("⚙️ Advanced: Edit Fixed School Name"):
     )
 
 
+# --- HELPER FUNCTION: SMART HUMAN-AWARE IMAGE FITTING ---
+def process_smart_photo(img, target_w, target_h, mode):
+    if "Fit Entire Photo" in mode:
+        # 1. Create a blurred background from the original image to fill empty space
+        bg = ImageOps.fit(
+            img,
+            (target_w, target_h),
+            method=Image.Resampling.LANCZOS,
+            centering=(0.5, 0.5),
+        )
+        bg = bg.filter(ImageFilter.GaussianBlur(radius=25))
+
+        # 2. Resize original image to fit 100% inside target box without cropping
+        ratio = min(target_w / img.width, target_h / img.height)
+        new_size = (int(img.width * ratio), int(img.height * ratio))
+        img_resized = img.resize(new_size, Image.Resampling.LANCZOS)
+
+        # 3. Paste full un-cropped photo in the center of the blurred background
+        paste_x = (target_w - img_resized.width) // 2
+        paste_y = (target_h - img_resized.height) // 2
+        bg.paste(img_resized, (paste_x, paste_y))
+        return bg
+
+    elif "Smart Crop" in mode:
+        # Top-weighted cropping (0.08 top anchor): Keeps people's heads/faces intact
+        # Trims floor/legs at the bottom instead of foreheads at the top
+        return ImageOps.fit(
+            img,
+            (target_w, target_h),
+            method=Image.Resampling.LANCZOS,
+            centering=(0.5, 0.08),
+        )
+
+    else:
+        # Standard center crop (0.5, 0.5)
+        return ImageOps.fit(
+            img,
+            (target_w, target_h),
+            method=Image.Resampling.LANCZOS,
+            centering=(0.5, 0.5),
+        )
+
+
 # --- HELPER FUNCTION TO DRAW HD POSTER ---
-def create_poster(image_file, school, date_text, subject_text, bg_color):
+def create_poster(
+    image_file, school, date_text, subject_text, bg_color, photo_mode
+):
     # 1. Create 1080x1920 Full HD Canvas (Seamless Uniform Background)
     width, height = 1080, 1920
     poster = Image.new("RGB", (width, height), color=bg_color)
@@ -173,7 +229,7 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
         anchor="mm",
     )
 
-    # 8. FULL-FRAME IMAGE FITTING (Horizontal & Vertical Fill without blank gaps)
+    # 8. FULL-FRAME SMART IMAGE FITTING (Preserving Heads/Faces)
     target_w, target_h = 1000, 960
     paste_x = (width - target_w) // 2
     paste_y = 545
@@ -207,14 +263,9 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
 
     if image_file:
         img = Image.open(image_file).convert("RGB")
-        # ImageOps.fit automatically scales & center-crops to fill 100% of target width and height
-        img_fitted = ImageOps.fit(
-            img,
-            (target_w, target_h),
-            method=Image.Resampling.LANCZOS,
-            centering=(0.5, 0.5),
-        )
-        poster.paste(img_fitted, (paste_x, paste_y))
+        # Apply intelligent photo processing based on selected sidebar mode
+        img_processed = process_smart_photo(img, target_w, target_h, photo_mode)
+        poster.paste(img_processed, (paste_x, paste_y))
     else:
         # Placeholder gray canvas if no photo uploaded yet
         draw.rectangle(
@@ -234,7 +285,7 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
     card_x0 = (width - card_w) // 2
     card_y0 = 1575
 
-    # White elevated info card instead of harsh dark blue bar
+    # White elevated info card
     draw.rounded_rectangle(
         [
             (card_x0, card_y0),
@@ -277,6 +328,7 @@ if uploaded_file is not None:
             date_input,
             subject_input,
             selected_bg_color,
+            fit_mode,
         )
 
         st.image(
