@@ -11,7 +11,7 @@ st.set_page_config(
 
 st.title("🏫 School Poster Generator (HD - Modern Formal)")
 st.write(
-    "Upload an event photo and update the details to generate an HD poster."
+    "Upload an event photo, choose a professional background theme, and update the details to generate an HD poster."
 )
 
 
@@ -34,7 +34,25 @@ def download_file(url, filepath):
 
 
 # --- SIDEBAR / INPUT CONTROLS ---
-st.sidebar.header("Poster Settings")
+st.sidebar.header("1. Theme & Appearance")
+
+# Dictionary mapping formal names to hex codes
+THEME_COLORS = {
+    "Warm Parchment Beige (Traditional)": "#F4F1EA",
+    "Muted Sage Green (Eco / Pollution Theme)": "#E8F0EC",
+    "Executive Slate Blue-Grey": "#ECEFF1",
+    "Traditional Sand / Ivory": "#FFFBEB",
+    "Subtle Civic Blue": "#EFF6FF",
+}
+
+selected_theme_name = st.sidebar.selectbox(
+    "Select Background Color",
+    options=list(THEME_COLORS.keys()),
+    index=1,  # Default to Muted Sage Green since subject is pollution
+)
+selected_bg_color = THEME_COLORS[selected_theme_name]
+
+st.sidebar.header("2. Poster Details")
 
 default_school_name = (
     "ಸರ್ಕಾರಿ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ ಹೊಮ್ಮರಗಳ್ಳಿ\nಹೆಚ್ ಡಿ ಕೋಟೆ ತಾಲ್ಲೂಕು ಮೈಸೂರು ಜಿಲ್ಲೆ"
@@ -57,10 +75,10 @@ uploaded_file = st.sidebar.file_uploader(
 
 
 # --- HELPER FUNCTION TO DRAW HD POSTER ---
-def create_poster(image_file, school, date_text, subject_text):
-    # 1. Create 1080x1920 Full HD Canvas with an Executive Off-White/Ivory Base
+def create_poster(image_file, school, date_text, subject_text, bg_color):
+    # 1. Create 1080x1920 Full HD Canvas with the Selected Theme Color Base
     width, height = 1080, 1920
-    poster = Image.new("RGB", (width, height), color="#F8FAFC")
+    poster = Image.new("RGB", (width, height), color=bg_color)
     draw = ImageDraw.Draw(poster)
 
     # 2. Draw Top Karnataka Decorative Accent Bars (Red & Yellow)
@@ -95,7 +113,7 @@ def create_poster(image_file, school, date_text, subject_text):
             font_footer_value
         ) = ImageFont.load_default()
 
-    # 5. Download and Place Karnataka Government Emblem (Using 500px authorized size)
+    # 5. Download and Place Karnataka Government Emblem (500px authorized size)
     emblem_path = "karnataka_emblem.png"
     emblem_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Seal_of_Karnataka.svg/500px-Seal_of_Karnataka.svg.png"
     download_file(emblem_url, emblem_path)
@@ -236,12 +254,16 @@ def create_poster(image_file, school, date_text, subject_text):
 if uploaded_file is not None:
     with st.spinner("Generating Professional High-Resolution Poster..."):
         hd_poster = create_poster(
-            uploaded_file, school_name, date_input, subject_input
+            uploaded_file,
+            school_name,
+            date_input,
+            subject_input,
+            selected_bg_color,
         )
 
         st.image(
             hd_poster,
-            caption="HD Professional Poster Preview (1080x1920)",
+            caption=f"HD Professional Poster Preview ({selected_theme_name})",
             use_container_width=True,
         )
 
