@@ -1,7 +1,7 @@
 import io
 import os
 import urllib.request
-from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 import streamlit as st
 
 # Set page configuration
@@ -51,13 +51,13 @@ selected_theme_name = st.sidebar.selectbox(
 )
 selected_bg_color = THEME_COLORS[selected_theme_name]
 
-# Smart Framing Selector to prevent head cropping
+# Clean scaling selector (No blurring)
 fit_mode = st.sidebar.selectbox(
     "Photo Framing Mode",
     options=[
-        "🧠 Smart Crop (Preserve Heads & Faces)",
-        "🖼️ Fit Entire Photo (No Crop + Blurred Bg)",
-        "⬜ Center Crop (Standard)",
+        "🔍 Zoom to Fill (Smart - Preserves Heads)",
+        "🖼️ Fit Entire Photo (Clean White Padding)",
+        "⬜ Center Zoom & Crop (Standard)",
     ],
     index=0,
 )
@@ -81,32 +81,22 @@ with st.sidebar.expander("⚙️ Advanced: Edit Fixed School Name"):
     )
 
 
-# --- HELPER FUNCTION: SMART HUMAN-AWARE IMAGE FITTING ---
+# --- HELPER FUNCTION: CLEAN ZOOM / DECREASE FITTING ---
 def process_smart_photo(img, target_w, target_h, mode):
     if "Fit Entire Photo" in mode:
-        # 1. Create a blurred background from the original image to fill empty space
-        bg = ImageOps.fit(
+        # Scales/decreases the photo to fit 100% inside the target box without cropping
+        # Pads any remaining space with a crisp white photo-mat border (#FFFFFF)
+        return ImageOps.pad(
             img,
             (target_w, target_h),
             method=Image.Resampling.LANCZOS,
+            color="#FFFFFF",
             centering=(0.5, 0.5),
         )
-        bg = bg.filter(ImageFilter.GaussianBlur(radius=25))
 
-        # 2. Resize original image to fit 100% inside target box without cropping
-        ratio = min(target_w / img.width, target_h / img.height)
-        new_size = (int(img.width * ratio), int(img.height * ratio))
-        img_resized = img.resize(new_size, Image.Resampling.LANCZOS)
-
-        # 3. Paste full un-cropped photo in the center of the blurred background
-        paste_x = (target_w - img_resized.width) // 2
-        paste_y = (target_h - img_resized.height) // 2
-        bg.paste(img_resized, (paste_x, paste_y))
-        return bg
-
-    elif "Smart Crop" in mode:
-        # Top-weighted cropping (0.08 top anchor): Keeps people's heads/faces intact
-        # Trims floor/legs at the bottom instead of foreheads at the top
+    elif "Smart" in mode:
+        # Zooms in to fill 100% of the target box
+        # Uses top-weighted anchor (0.08) to keep people's heads & foreheads intact
         return ImageOps.fit(
             img,
             (target_w, target_h),
@@ -115,7 +105,7 @@ def process_smart_photo(img, target_w, target_h, mode):
         )
 
     else:
-        # Standard center crop (0.5, 0.5)
+        # Standard center zoom & fill
         return ImageOps.fit(
             img,
             (target_w, target_h),
@@ -229,7 +219,7 @@ def create_poster(
         anchor="mm",
     )
 
-    # 8. FULL-FRAME SMART IMAGE FITTING (Preserving Heads/Faces)
+    # 8. FULL-FRAME ZOOM / DECREASE FITTING
     target_w, target_h = 1000, 960
     paste_x = (width - target_w) // 2
     paste_y = 545
@@ -263,7 +253,7 @@ def create_poster(
 
     if image_file:
         img = Image.open(image_file).convert("RGB")
-        # Apply intelligent photo processing based on selected sidebar mode
+        # Apply clean zoom/pad scaling based on selected mode
         img_processed = process_smart_photo(img, target_w, target_h, photo_mode)
         poster.paste(img_processed, (paste_x, paste_y))
     else:
