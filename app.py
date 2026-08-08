@@ -1,15 +1,15 @@
 import io
 import os
 import urllib.request
-from PIL import Image, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont
 import streamlit as st
 
 # Set page configuration
 st.set_page_config(
-    page_title="School HD Poster Generator", page_icon="🏫", layout="centered"
+    page_title="Sachetana Poster Generator", page_icon="🏫", layout="centered"
 )
 
-st.title("🏫 School Poster Generator (HD - Cohesive Design)")
+st.title("🏫 Sachetana Poster Generator")
 st.write(
     "Upload your event photo and update the Date & Subject to generate an HD poster."
 )
@@ -33,36 +33,8 @@ def download_file(url, filepath):
             st.warning(f"⚠️ Could not download {filepath}: {e}")
 
 
-# --- SIDEBAR: DYNAMIC CONTROLS ---
-st.sidebar.header("1. Theme & Framing")
-
-THEME_COLORS = {
-    "Warm Parchment Beige (Traditional)": "#F4F1EA",
-    "Muted Sage Green (Eco / Pollution Theme)": "#E8F0EC",
-    "Executive Slate Blue-Grey": "#ECEFF1",
-    "Traditional Sand / Ivory": "#FFFBEB",
-    "Subtle Civic Blue": "#EFF6FF",
-}
-
-selected_theme_name = st.sidebar.selectbox(
-    "Select Background Color",
-    options=list(THEME_COLORS.keys()),
-    index=1,
-)
-selected_bg_color = THEME_COLORS[selected_theme_name]
-
-# Framing mode selector (Default set to Full Frame Stretch without padding or cropping)
-fit_mode = st.sidebar.selectbox(
-    "Photo Framing Mode",
-    options=[
-        "↔️ Full Frame Stretch (No Crop + No Padding)",
-        "🔍 Zoom to Fill (Smart - Preserves Heads)",
-        "⬜ Center Zoom & Crop (Standard)",
-    ],
-    index=0,
-)
-
-st.sidebar.header("2. Event Details")
+# --- SIDEBAR: EVENT DETAILS ---
+st.sidebar.header("Event Details")
 
 date_input = st.sidebar.text_input("Date (ದಿನಾಂಕ)", value="05-08-2026")
 subject_input = st.sidebar.text_input(
@@ -81,39 +53,11 @@ with st.sidebar.expander("⚙️ Advanced: Edit Fixed School Name"):
     )
 
 
-# --- HELPER FUNCTION: ZERO-PADDING / ZERO-CROPPING PHOTO FIT ---
-def process_smart_photo(img, target_w, target_h, mode):
-    if "Full Frame Stretch" in mode:
-        # Exact resize: Fits 100% of the photo into the 1000x960 box
-        # Leaves ZERO white padding and crops ZERO pixels from the image
-        return img.resize((target_w, target_h), Image.Resampling.LANCZOS)
-
-    elif "Smart" in mode:
-        # Zooms in to fill 100% of the target box
-        # Uses top-weighted anchor (0.08) to keep people's heads & foreheads intact
-        return ImageOps.fit(
-            img,
-            (target_w, target_h),
-            method=Image.Resampling.LANCZOS,
-            centering=(0.5, 0.08),
-        )
-
-    else:
-        # Standard center zoom & fill
-        return ImageOps.fit(
-            img,
-            (target_w, target_h),
-            method=Image.Resampling.LANCZOS,
-            centering=(0.5, 0.5),
-        )
-
-
 # --- HELPER FUNCTION TO DRAW HD POSTER ---
-def create_poster(
-    image_file, school, date_text, subject_text, bg_color, photo_mode
-):
-    # 1. Create 1080x1920 Full HD Canvas (Seamless Uniform Background)
+def create_poster(image_file, school, date_text, subject_text):
+    # 1. Create 1080x1920 Full HD Canvas (Fixed Warm Parchment Beige #F4F1EA)
     width, height = 1080, 1920
+    bg_color = "#F4F1EA"
     poster = Image.new("RGB", (width, height), color=bg_color)
     draw = ImageDraw.Draw(poster)
 
@@ -213,48 +157,30 @@ def create_poster(
         anchor="mm",
     )
 
-    # 8. FULL-FRAME PHOTO FITTING (Zero Padding & Zero Cropping by Default)
+    # 8. STANDARD FRAME WITH FULL-FRAME STRETCH (No background card, no shadows)
     target_w, target_h = 1000, 960
     paste_x = (width - target_w) // 2
-    paste_y = 545
-    border = 18
-
-    # Draw Outer Simulated Shadow
-    shadow_offset = 12
-    draw.rounded_rectangle(
-        [
-            (paste_x - border + shadow_offset, paste_y - border + shadow_offset),
-            (
-                paste_x + target_w + border + shadow_offset,
-                paste_y + target_h + border + shadow_offset,
-            ),
-        ],
-        radius=16,
-        fill="#CBD5E1",
-    )
-
-    # Draw Crisp White Card Frame
-    draw.rounded_rectangle(
-        [
-            (paste_x - border, paste_y - border),
-            (paste_x + target_w + border, paste_y + target_h + border),
-        ],
-        radius=16,
-        fill="#FFFFFF",
-        outline="#E2E8F0",
-        width=2,
-    )
+    paste_y = 550
 
     if image_file:
         img = Image.open(image_file).convert("RGB")
-        # Apply exact frame stretching or smart zooming based on selected sidebar mode
-        img_processed = process_smart_photo(img, target_w, target_h, photo_mode)
+        # Full Frame Stretch: Exact resize to fill 100% of target area without cropping or padding
+        img_processed = img.resize((target_w, target_h), Image.Resampling.LANCZOS)
         poster.paste(img_processed, (paste_x, paste_y))
+
+        # Standard clean thin border outline around the image
+        draw.rectangle(
+            [(paste_x - 1, paste_y - 1), (paste_x + target_w + 1, paste_y + target_h + 1)],
+            outline="#CBD5E1",
+            width=2,
+        )
     else:
         # Placeholder gray canvas if no photo uploaded yet
         draw.rectangle(
             [(paste_x, paste_y), (paste_x + target_w, paste_y + target_h)],
             fill="#E2E8F0",
+            outline="#CBD5E1",
+            width=2,
         )
         draw.text(
             (width // 2, paste_y + (target_h // 2)),
@@ -311,13 +237,11 @@ if uploaded_file is not None:
             school_name,
             date_input,
             subject_input,
-            selected_bg_color,
-            fit_mode,
         )
 
         st.image(
             hd_poster,
-            caption=f"HD Professional Poster Preview ({selected_theme_name})",
+            caption="HD Professional Poster Preview (Warm Parchment Beige)",
             use_container_width=True,
         )
 
@@ -328,7 +252,7 @@ if uploaded_file is not None:
         st.download_button(
             label="📥 Download HD Poster (PNG)",
             data=byte_im,
-            file_name="school_poster_professional_hd.png",
+            file_name="sachetana_poster_hd.png",
             mime="image/png",
             use_container_width=True,
         )
