@@ -1,7 +1,7 @@
 import io
 import os
 import urllib.request
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 import streamlit as st
 
 # Set page configuration
@@ -9,9 +9,9 @@ st.set_page_config(
     page_title="School HD Poster Generator", page_icon="🏫", layout="centered"
 )
 
-st.title("🏫 School Poster Generator (HD - Modern Formal)")
+st.title("🏫 School Poster Generator (HD - Cohesive Design)")
 st.write(
-    "Upload an event photo, choose a professional background theme, and update the details to generate an HD poster."
+    "Upload your event photo and update the Date & Subject to generate an HD poster."
 )
 
 
@@ -33,8 +33,8 @@ def download_file(url, filepath):
             st.warning(f"⚠️ Could not download {filepath}: {e}")
 
 
-# --- SIDEBAR / INPUT CONTROLS ---
-st.sidebar.header("1. Theme & Appearance")
+# --- SIDEBAR: DYNAMIC CONTROLS (ONLY WHAT CHANGES) ---
+st.sidebar.header("1. Theme Selection")
 
 THEME_COLORS = {
     "Warm Parchment Beige (Traditional)": "#F4F1EA",
@@ -51,17 +51,7 @@ selected_theme_name = st.sidebar.selectbox(
 )
 selected_bg_color = THEME_COLORS[selected_theme_name]
 
-st.sidebar.header("2. Poster Details")
-
-default_school_name = (
-    "ಸರ್ಕಾರಿ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ ಹೊಮ್ಮರಗಳ್ಳಿ\nಹೆಚ್ ಡಿ ಕೋಟೆ ತಾಲ್ಲೂಕು ಮೈಸೂರು ಜಿಲ್ಲೆ"
-)
-
-school_name = st.sidebar.text_area(
-    "School Name (2 Lines Recommended)",
-    value=default_school_name,
-    height=100,
-)
+st.sidebar.header("2. Event Details")
 
 date_input = st.sidebar.text_input("Date (ದಿನಾಂಕ)", value="05-08-2026")
 subject_input = st.sidebar.text_input(
@@ -72,10 +62,17 @@ uploaded_file = st.sidebar.file_uploader(
     "Upload School Photo", type=["jpg", "jpeg", "png"]
 )
 
+# --- ADVANCED / FIXED SETTINGS (HIDDEN BY DEFAULT) ---
+with st.sidebar.expander("⚙️ Advanced: Edit Fixed School Name"):
+    default_school_name = "ಸರ್ಕಾರಿ ಹಿರಿಯ ಪ್ರಾಥಮಿಕ ಶಾಲೆ ಹೊಮ್ಮರಗಳ್ಳಿ\nಹೆಚ್ ಡಿ ಕೋಟೆ ತಾಲ್ಲೂಕು ಮೈಸೂರು ಜಿಲ್ಲೆ"
+    school_name = st.text_area(
+        "School Name (2 Lines)", value=default_school_name, height=90
+    )
+
 
 # --- HELPER FUNCTION TO DRAW HD POSTER ---
 def create_poster(image_file, school, date_text, subject_text, bg_color):
-    # 1. Create 1080x1920 Full HD Canvas with the Selected Theme Color Base
+    # 1. Create 1080x1920 Full HD Canvas (Seamless Uniform Background)
     width, height = 1080, 1920
     poster = Image.new("RGB", (width, height), color=bg_color)
     draw = ImageDraw.Draw(poster)
@@ -86,13 +83,7 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
         [(0, 14), (width, 28)], fill="#FFC107"
     )  # Vibrant Gold stripe
 
-    # 3. Draw Modern Dark Navy Footer Banner with a Gold Top Border
-    footer_height = 340
-    footer_y0 = height - footer_height
-    draw.rectangle([(0, footer_y0 - 6), (width, footer_y0)], fill="#FFC107")
-    draw.rectangle([(0, footer_y0), (width, height)], fill="#0F172A")
-
-    # 4. Download and Load Kannada Font
+    # 3. Download and Load Kannada Font
     font_path = "NotoSansKannada-Bold.ttf"
     font_url = "https://raw.githubusercontent.com/openmaptiles/fonts/master/noto-sans/NotoSansKannada-Bold.ttf"
     download_file(font_url, font_path)
@@ -102,8 +93,8 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
         font_sub = ImageFont.truetype(font_path, 38)
         font_school = ImageFont.truetype(font_path, 38)
         font_badge = ImageFont.truetype(font_path, 52)
-        font_footer_label = ImageFont.truetype(font_path, 42)
-        font_footer_value = ImageFont.truetype(font_path, 46)
+        font_footer_label = ImageFont.truetype(font_path, 44)
+        font_footer_value = ImageFont.truetype(font_path, 48)
     except IOError:
         st.warning(
             "⚠️ Kannada font could not be loaded. Text may not render correctly."
@@ -112,7 +103,7 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
             font_footer_value
         ) = ImageFont.load_default()
 
-    # 5. Download and Place Karnataka Government Emblem (500px authorized size)
+    # 4. Download and Place Karnataka Government Emblem (500px authorized size)
     emblem_path = "karnataka_emblem.png"
     emblem_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Seal_of_Karnataka.svg/500px-Seal_of_Karnataka.svg.png"
     download_file(emblem_url, emblem_path)
@@ -127,7 +118,7 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
         except Exception as e:
             st.warning(f"⚠️ Could not render emblem image: {e}")
 
-    # 6. Draw Professional Header Text (Distinct Hierarchy)
+    # 5. Draw Fixed Header Text
     draw.text(
         (width // 2, 190),
         "ಕರ್ನಾಟಕ ಸರ್ಕಾರ",
@@ -143,7 +134,7 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
         anchor="mm",
     )
 
-    # 7. Draw School Name in 2 Clean Lines
+    # 6. Draw Fixed School Name in 2 Clean Lines
     lines = [line.strip() for line in school.split("\n") if line.strip()]
     if len(lines) >= 1:
         draw.text(
@@ -162,7 +153,7 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
             anchor="mm",
         )
 
-    # 8. Draw "ಸಚೇತನ" Executive Pill Badge
+    # 7. Draw "ಸಚೇತನ" Executive Pill Badge
     badge_w, badge_h = 320, 80
     badge_x0 = (width - badge_w) // 2
     badge_y0 = 430
@@ -182,77 +173,95 @@ def create_poster(image_file, school, date_text, subject_text, bg_color):
         anchor="mm",
     )
 
-    # 9. Dynamically Auto-Fit Photo to Utilize All Available Middle Canvas Space
+    # 8. FULL-FRAME IMAGE FITTING (Horizontal & Vertical Fill without blank gaps)
+    target_w, target_h = 1000, 960
+    paste_x = (width - target_w) // 2
+    paste_y = 545
+    border = 18
+
+    # Draw Outer Simulated Shadow
+    shadow_offset = 12
+    draw.rounded_rectangle(
+        [
+            (paste_x - border + shadow_offset, paste_y - border + shadow_offset),
+            (
+                paste_x + target_w + border + shadow_offset,
+                paste_y + target_h + border + shadow_offset,
+            ),
+        ],
+        radius=16,
+        fill="#CBD5E1",
+    )
+
+    # Draw Crisp White Card Frame
+    draw.rounded_rectangle(
+        [
+            (paste_x - border, paste_y - border),
+            (paste_x + target_w + border, paste_y + target_h + border),
+        ],
+        radius=16,
+        fill="#FFFFFF",
+        outline="#E2E8F0",
+        width=2,
+    )
+
     if image_file:
         img = Image.open(image_file).convert("RGB")
-
-        # Max available width (1000px = 40px left/right margins) and height (1030px)
-        max_w, max_h = 1000, 1030
-
-        # Scale image up or down to be as large as possible without overflowing
-        ratio = min(max_w / img.width, max_h / img.height)
-        new_size = (int(img.width * ratio), int(img.height * ratio))
-        img = img.resize(new_size, Image.Resampling.LANCZOS)
-
-        # Center horizontally
-        paste_x = (width - img.width) // 2
-
-        # Dynamically center vertically between bottom of badge (515) and top of footer (1575)
-        available_top = 525
-        available_bottom = footer_y0 - 15  # 1565
-        available_height = available_bottom - available_top
-        paste_y = available_top + (available_height - img.height) // 2
-
-        border = 18
-
-        # Outer Shadow for 3D Depth
-        shadow_offset = 12
-        draw.rounded_rectangle(
-            [
-                (
-                    paste_x - border + shadow_offset,
-                    paste_y - border + shadow_offset,
-                ),
-                (
-                    paste_x + img.width + border + shadow_offset,
-                    paste_y + img.height + border + shadow_offset,
-                ),
-            ],
-            radius=12,
-            fill="#CBD5E1",
+        # ImageOps.fit automatically scales & center-crops to fill 100% of target width and height
+        img_fitted = ImageOps.fit(
+            img,
+            (target_w, target_h),
+            method=Image.Resampling.LANCZOS,
+            centering=(0.5, 0.5),
+        )
+        poster.paste(img_fitted, (paste_x, paste_y))
+    else:
+        # Placeholder gray canvas if no photo uploaded yet
+        draw.rectangle(
+            [(paste_x, paste_y), (paste_x + target_w, paste_y + target_h)],
+            fill="#E2E8F0",
+        )
+        draw.text(
+            (width // 2, paste_y + (target_h // 2)),
+            "Photo Will Fill This Frame Completely",
+            font=font_sub,
+            fill="#64748B",
+            anchor="mm",
         )
 
-        # Crisp White Card Frame
-        draw.rounded_rectangle(
-            [
-                (paste_x - border, paste_y - border),
-                (paste_x + img.width + border, paste_y + img.height + border),
-            ],
-            radius=12,
-            fill="#FFFFFF",
-            outline="#E2E8F0",
-            width=2,
-        )
+    # 9. UNIFORM FOOTER CARD (Blends smoothly with slight elevation difference)
+    card_w, card_h = 960, 260
+    card_x0 = (width - card_w) // 2
+    card_y0 = 1575
 
-        # Paste Uploaded Photo
-        poster.paste(img, (paste_x, paste_y))
+    # White elevated info card instead of harsh dark blue bar
+    draw.rounded_rectangle(
+        [
+            (card_x0, card_y0),
+            (card_x0 + card_w, card_y0 + card_h),
+        ],
+        radius=24,
+        fill="#FFFFFF",
+        outline="#CBD5E1",
+        width=3,
+    )
 
-    # 10. Draw Formal Footer Content
+    # Draw Footer Text inside cohesive card
     footer_text_1 = f"ದಿನಾಂಕ : {date_text}"
     footer_text_2 = f"ವಿಷಯ : {subject_text}"
 
     draw.text(
-        (width // 2, height - 230),
+        (width // 2, card_y0 + 80),
         footer_text_1,
         font=font_footer_label,
-        fill="#F8FAFC",
+        fill="#1E3A8A",  # Royal Navy
         anchor="mm",
     )
     draw.text(
-        (width // 2, height - 120),
+        (width // 2, card_y0 + 175),
         footer_text_2,
         font=font_footer_value,
-        fill="#FFD700",
+        fill="#800020",  # Rich Burgundy
         anchor="mm",
     )
 
@@ -288,7 +297,9 @@ if uploaded_file is not None:
             use_container_width=True,
         )
 else:
-    st.info("👈 Please upload an image from the sidebar to generate the poster.")
+    st.info(
+        "👈 Please upload an image from the sidebar to generate your poster."
+    )
 
 # --- WEBPAGE FOOTER CREDIT ---
 st.markdown("---")
